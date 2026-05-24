@@ -16,6 +16,10 @@ final class UsersListViewModel {
     
     // MARK: - Properties
     
+    // public for testing
+    var pageSize: Int = AppConstants.pageSize
+    var maxAllowedUsers: Int = AppConstants.maxAllowedUsers
+    
     private(set) var state: State = .loading
     private(set) var isLoading:Bool = false
     
@@ -63,12 +67,12 @@ final class UsersListViewModel {
             do {
                 let result = try await usersRepository.fetchUsers(
                     page: currentPage,
-                    pageSize: AppConstants.pageSize
+                    pageSize: pageSize
                 )
                 users.append(contentsOf: result.users)
                 currentPage += 1
                 let hasMoreFromResponse = result.hasMore
-                hasMorePages = hasMoreFromResponse && users.count < AppConstants.maxAllowedUsers
+                hasMorePages = hasMoreFromResponse && users.count < maxAllowedUsers
                 isLoading = false
                 updateState()
             } catch {
