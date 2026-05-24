@@ -24,7 +24,8 @@ final class AppCoordinator: Coordinator {
         // test
         Task {
             let api = URLSessionAPIClient()
-            let users: UsersResponseDTO? = try? await api.fetch(from: APIEndpoint.users(page: 1, pageSize: 20).url!)
+            let repo = AppUsersRepository(apiClient: api)
+            let users = try? await repo.fetchUsers(page: 1, pageSize: 20)
             debugPrint(users)
         }
     }

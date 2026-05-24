@@ -24,3 +24,16 @@ extension UserDTO {
         case profileImage = "profile_image"
     }
 }
+
+// MARK: - mapping
+
+extension UserDTO {
+    func toDomain() -> User {
+        User(
+            id: userId,
+            displayName: displayName,
+            reputation: reputation,
+            profileImageURL: profileImage.flatMap(URL.init)
+        )
+    }
+}
