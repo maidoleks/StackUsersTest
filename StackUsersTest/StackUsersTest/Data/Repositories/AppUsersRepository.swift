@@ -8,12 +8,18 @@
 import Foundation
 
 final class AppUsersRepository: UsersRepository {
+    // MARK: - Properties
+    
     private let apiClient: APIClient
 
+    // MARK: - Init
+    
     init(apiClient: APIClient) {
         self.apiClient = apiClient
     }
 
+    // MARK: - UsersRepository
+    
     func fetchUsers(page: Int, pageSize: Int) async throws -> UsersPage {
         guard let url = APIEndpoint.users(page: page, pageSize: pageSize).url else {
             throw APIError.badRequest
