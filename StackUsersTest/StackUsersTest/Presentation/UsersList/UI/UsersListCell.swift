@@ -8,8 +8,16 @@
 import UIKit
 
 final class UsersListCell: UITableViewCell {
+    // MARK: - Constants
+    
     static let reuseIdentifier = "UsersListCell"
-
+    
+    // MARK: - Dependencies
+    
+    var imageService: ImageService = CachedImageService()
+    
+    // MARK: - Properties
+    
     var toggleFollow: (() -> Void)?
 
     // MARK: - UI
@@ -82,7 +90,7 @@ final class UsersListCell: UITableViewCell {
         guard let url = item.user.profileImageURL else { return }
         let loadId = item.user.id
         imageTask = Task { [weak self] in
-            guard let (data, _) = try? await URLSession.shared.data(from: url),
+            guard let data = await self?.imageService.load(from: url),
                   let image = UIImage(data: data),
                   !Task.isCancelled
             else { return }
