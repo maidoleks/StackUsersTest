@@ -35,9 +35,12 @@ final class AppCoordinator: Coordinator {
     // MARK: - Potential future Factory
     
     private func makeUsersListViewController() -> UsersListViewController {
+        // could be moved to services container in future
         let apiClient = URLSessionAPIClient()
         let usersRepository = AppUsersRepository(apiClient: apiClient)
-        let viewModel = UsersListViewModel(usersRepository: usersRepository)
+        let followService = DefaultsFollowService()
+        
+        let viewModel = UsersListViewModel(usersRepository: usersRepository, followService: followService)
         let viewController = UsersListViewController(viewModel: viewModel)
         viewController.title = "Top Users"
         return viewController

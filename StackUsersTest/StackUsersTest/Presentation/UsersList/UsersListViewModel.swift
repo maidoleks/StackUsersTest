@@ -12,6 +12,7 @@ final class UsersListViewModel {
     // MARK: - Dependencies
     
     private let usersRepository: UsersRepository
+    private let followService: FollowService
     
     // MARK: - Properties
     
@@ -24,8 +25,9 @@ final class UsersListViewModel {
     
     // MARK: - Init
     
-    init(usersRepository: UsersRepository) {
+    init(usersRepository: UsersRepository, followService: FollowService) {
         self.usersRepository = usersRepository
+        self.followService = followService
     }
     
     // MARK: - Public methods
@@ -41,6 +43,15 @@ final class UsersListViewModel {
     func loadNextPageIfNeeded() {
         guard !isLoading, hasMorePages else { return }
         fetchNextPage()
+    }
+    
+    func toggleFollow(for userId: Int) {
+        if followService.isFollowed(userId: userId) {
+            followService.unfollow(userId: userId)
+        } else {
+            followService.follow(userId: userId)
+        }
+        updateState()
     }
 
     // MARK: - Private methods
@@ -59,22 +70,24 @@ final class UsersListViewModel {
                 let hasMoreFromResponse = result.hasMore
                 hasMorePages = hasMoreFromResponse && users.count < AppConstants.maxAllowedUsers
                 isLoading = false
-                updateState(users: users)
+                updateState()
             } catch {
                 isLoading = false
-                updateState(error: error)
+                updateState(error)
             }
         }
     }
     
-    private func updateState(users: [User] = [], error: Error? = nil) {
+    private func updateState(_ error: Error? = nil) {
         if let error, users.isEmpty {
             // TODO: check if we need to show some error if not the first page failed to load
             state = .error(error.localizedDescription)
             return
         }
-        
-        state = .loaded(users)
+        let items = users.map {
+            UserListItem(user: $0, isFollowed: followService.isFollowed(userId: $0.id))
+        }
+        state = .loaded(items)
     }
 }
 
@@ -84,7 +97,7 @@ final class UsersListViewModel {
 extension UsersListViewModel {
     enum State: Equatable {
         case loading
-        case loaded([User])
+        case loaded([UserListItem])
         case error(String)
     }
 }

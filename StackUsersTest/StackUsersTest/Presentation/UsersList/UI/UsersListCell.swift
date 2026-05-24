@@ -10,7 +10,7 @@ import UIKit
 final class UsersListCell: UITableViewCell {
     static let reuseIdentifier = "UsersListCell"
 
-    var onFollowToggled: (() -> Void)?
+    var toggleFollow: (() -> Void)?
 
     // MARK: - UI
 
@@ -40,6 +40,12 @@ final class UsersListCell: UITableViewCell {
         return label
     }()
     
+    private let followButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
     private var imageTask: Task<Void, Never>?
     private var currentLoadId: Int?
 
@@ -63,16 +69,18 @@ final class UsersListCell: UITableViewCell {
 
     // MARK: - Configure
 
-    func configure(with user: User) {
-        nameLabel.text = user.displayName
-        reputationLabel.text = "Reputation: \(user.reputation.formatted())"
+    func configure(with item: UserListItem) {
+        nameLabel.text = item.user.displayName
+        reputationLabel.text = "Rep: \(item.user.reputation.formatted())"
+
+        updateFollowButton(isFollowed: item.isFollowed)
 
         imageTask?.cancel()
-        currentLoadId = user.id
+        currentLoadId = item.user.id
         showPlaceholder()
 
-        guard let url = user.profileImageURL else { return }
-        let loadId = user.id
+        guard let url = item.user.profileImageURL else { return }
+        let loadId = item.user.id
         imageTask = Task { [weak self] in
             guard let (data, _) = try? await URLSession.shared.data(from: url),
                   let image = UIImage(data: data),
@@ -85,11 +93,22 @@ final class UsersListCell: UITableViewCell {
             }
         }
     }
+    
+    func updateFollowButton(isFollowed: Bool) {
+        let symbolName = isFollowed ? "star.fill" : "star"
+        let color = isFollowed ? UIColor.systemYellow : UIColor.systemGray
+        
+        UIView.transition(with: followButton, duration: 0.2, options: .transitionCrossDissolve) {
+            self.followButton.setImage(UIImage(systemName: symbolName), for: .normal)
+            self.followButton.tintColor = color
+        }
+    }
 
     // MARK: - Setup
 
     private func setupUI() {
         selectionStyle = .none
+        followButton.addTarget(self, action: #selector(onFollowTap), for: .touchUpInside)
 
         let textStack = UIStackView(arrangedSubviews: [nameLabel, reputationLabel])
         textStack.axis = .vertical
@@ -98,6 +117,7 @@ final class UsersListCell: UITableViewCell {
 
         contentView.addSubview(profileImageView)
         contentView.addSubview(textStack)
+        contentView.addSubview(followButton)
 
         NSLayoutConstraint.activate([
             profileImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -109,7 +129,12 @@ final class UsersListCell: UITableViewCell {
 
             textStack.leadingAnchor.constraint(equalTo: profileImageView.trailingAnchor, constant: 12),
             textStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            textStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16)
+            textStack.trailingAnchor.constraint(lessThanOrEqualTo: followButton.leadingAnchor, constant: -8),
+
+            followButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            followButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            followButton.widthAnchor.constraint(equalToConstant: 44),
+            followButton.heightAnchor.constraint(equalToConstant: 44),
         ])
     }
 
@@ -136,4 +161,10 @@ final class UsersListCell: UITableViewCell {
             symbol?.draw(in: iconRect)
         }
     }()
+    
+    // MARK: - Actions
+    
+    @objc private func onFollowTap() {
+        toggleFollow?()
+    }
 }

@@ -34,6 +34,8 @@ final class UsersListViewController: UIViewController {
     // Error state is optional
     private var errorView: UIView?
     private var errorLabel: UILabel?
+    
+    private var items: [UserListItem] = []
 
     // MARK: - Init
 
@@ -172,8 +174,8 @@ final class UsersListViewController: UIViewController {
             loadingIndicator.startAnimating()
             tableView.refreshControl?.endRefreshing()
 
-        case .loaded:
-            tableView.reloadData()
+        case .loaded(let newItems):
+            updateItems(with: newItems)
             tableView.isHidden = false
             removeErrorView()
             loadingIndicator.stopAnimating()
@@ -188,16 +190,49 @@ final class UsersListViewController: UIViewController {
 
         isAdditionalLoading ? footerLoadingIndicator.startAnimating() : footerLoadingIndicator.stopAnimating()
     }
+    
+    private func updateItems(with newItems: [UserListItem]) {
+        let oldCount = items.count
+        let newCount = newItems.count
+        
+        // if it's a first load - just reload
+        if oldCount == 0 {
+            items = newItems
+            tableView.reloadData()
+            return
+        }
+        
+        // Do not reload entire table if it's additional page has been loaded
+        if newCount > oldCount {
+            items = newItems
+            let newIndexPaths = (oldCount..<newCount).map { IndexPath(row: $0, section: 0) }
+            tableView.performBatchUpdates {
+                tableView.insertRows(at: newIndexPaths, with: .none)
+            }
+        } else {
+            // if count is the same - then it's a refresh of following statuses
+            updateFollowStatusesIfNeeded(old: items, new: newItems)
+        }
+    }
+    
+    private func updateFollowStatusesIfNeeded(old: [UserListItem], new: [UserListItem]) {
+        guard old.count == new.count else { return }
+        
+        let changedIndexPaths = zip(old, new).enumerated().compactMap { index, items -> IndexPath? in
+            items.0.isFollowed != items.1.isFollowed ? IndexPath(row: index, section: 0) : nil
+        }
+        
+        guard !changedIndexPaths.isEmpty else { return }
+        items = new
+        tableView.reloadRows(at: changedIndexPaths, with: .none)
+    }
 }
 
 // MARK: - UITableViewDataSource
 
 extension UsersListViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if case .loaded(let items) = viewModel.state {
-            return items.count
-        }
-        return .zero
+        items.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -205,13 +240,15 @@ extension UsersListViewController: UITableViewDataSource {
             withIdentifier: UsersListCell.reuseIdentifier,
             for: indexPath
         ) as! UsersListCell
-        if case .loaded(let items) = viewModel.state {
-            let item = items[indexPath.row]
-            cell.configure(with: item)
+        let item = items[indexPath.row]
+        cell.configure(with: item)
+        cell.toggleFollow = { [weak self] in
+            self?.viewModel.toggleFollow(for: item.user.id)
         }
         return cell
     }
 }
+
 
 // MARK: - UITableViewDelegate
 
