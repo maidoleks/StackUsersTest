@@ -20,6 +20,13 @@ final class AppCoordinator: Coordinator {
     init(window: UIWindow) {
         self.window = window
         self.navigationController = UINavigationController()
+        
+        // test
+        Task {
+            let api = URLSessionAPIClient()
+            let users: UsersResponseDTO? = try? await api.fetch(from: APIEndpoint.users(page: 1, pageSize: 20).url!)
+            debugPrint(users)
+        }
     }
     
     // MARK: - Coordinator
