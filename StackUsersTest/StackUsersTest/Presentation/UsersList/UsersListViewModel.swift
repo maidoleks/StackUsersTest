@@ -7,7 +7,7 @@
 
 import Foundation
 
-@MainActor
+@MainActor @Observable
 final class UsersListViewModel {
     // MARK: - Dependencies
     

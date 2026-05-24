@@ -20,20 +20,26 @@ final class AppCoordinator: Coordinator {
     init(window: UIWindow) {
         self.window = window
         self.navigationController = UINavigationController()
-        
-        // test
-        Task {
-            let api = URLSessionAPIClient()
-            let repo = AppUsersRepository(apiClient: api)
-            let users = try? await repo.fetchUsers(page: 1, pageSize: 20)
-            debugPrint(users)
-        }
     }
     
     // MARK: - Coordinator
     
     func start() {
+        let viewController = makeUsersListViewController()
+        navigationController.setViewControllers([viewController], animated: false)
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
+
+    }
+    
+    // MARK: - Potential future Factory
+    
+    private func makeUsersListViewController() -> UsersListViewController {
+        let apiClient = URLSessionAPIClient()
+        let usersRepository = AppUsersRepository(apiClient: apiClient)
+        let viewModel = UsersListViewModel(usersRepository: usersRepository)
+        let viewController = UsersListViewController(viewModel: viewModel)
+        viewController.title = "Top Users"
+        return viewController
     }
 }
